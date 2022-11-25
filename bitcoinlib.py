@@ -3,8 +3,21 @@ import bitcoin
 from bitcoin.core import Hash160
 from bitcoin.core.script import CScript, OP_DUP, OP_HASH160, OP_EQUALVERIFY, OP_CHECKSIG, SignatureHash, SIGHASH_ALL
 from bitcoin.wallet import CBitcoinSecret, P2PKHBitcoinAddress, P2SHBitcoinAddress
- 
-bitcoin.SelectParams('mainnet')
+
+try:
+    networkSelect = input("Mainnet or Testnet? ").lower()
+    if networkSelect == "":
+        raise ValueError
+    elif networkSelect == "mainnet" or networkSelect == "main":
+        bitcoin.SelectParams(networkSelect)
+    elif networkSelect == "testnet" or networkSelect == "test":
+        bitcoin.SelectParams(networkSelect)
+    else:
+        raise ValueError
+except:
+    print("\33[31mError selecting network, selecting Testnet by default.\33[0m")
+    networkSelect = "testnet"
+    bitcoin.SelectParams(networkSelect)
 exit = False
 
 def createPrivateKey(text):
@@ -24,6 +37,12 @@ def createAddress(publicKey):
     address = P2PKHBitcoinAddress.from_pubkey(publicKey)
     return address
 
+def createP2SHaddress(publicKey):
+    # create a P2SH address from the public key
+    redeemScript = CScript([OP_DUP, OP_HASH160, Hash160(publicKey), OP_EQUALVERIFY, OP_CHECKSIG])
+    address = P2SHBitcoinAddress.from_redeemScript(redeemScript)
+    return address
+
 def createWallet(text):
     privateKey = createPrivateKey(text)
     publicKey, privateKey = createPublicKey(privateKey)
@@ -31,44 +50,64 @@ def createWallet(text):
     print("Private key: " + str(privateKey))
     print("Public key: " + str(publicKey))
     print("Address: " + str(address))
+    rand = random.randint(0, 100)
     # save the private key to a file
-    #with open("keys.txt", "w") as f:
+    #with open("keys" + str(rand) + ".txt", "w") as f:
     #    f.write(str(f"Private key: {privateKey}\n"))
     #    f.write(str(f"Address: {address}"))
     return privateKey, publicKey, address
 
 def getBalance(address):
     # get the balance of the address
-    url = "https://blockchain.info/balance?active=" + str(address)
-    r = requests.get(url)
-    if r.status_code == 200:
-        balance = r.text
-        balance = json.loads(balance)
-        balance = list(balance.values())
-        balance = balance[0]
-        balance = balance["final_balance"]
-        print("Balance: " + str(balance) + " Sats")
-    else:
+    try:
+        url = "https://blockchain.info/balance?active=" + str(address)
+        r = requests.get(url)
+        if r.status_code == 200:
+            balance = r.text
+            balance = json.loads(balance)
+            balance = list(balance.values())
+            balance = balance[0]
+            balance = balance["final_balance"]
+            print("Balance: " + str(balance) + " Sats")
+        else:
+            print("Error getting balance")
+    except(IndexError):
         print("Error getting balance")
-
 def checkUnspentTX(address):
     # get the unspent transactions of the address
-    url = "https://blockchain.info/unspent?active=" + str(address)
-    r = requests.get(url)
-    if r.status_code == 200:
-        unspentTX = r.text
-        unspentTX = json.loads(unspentTX)
-        unspentTX = list(unspentTX.values())
-        unspentTX = unspentTX[1][0]
-        TXID = unspentTX["tx_hash"]
-        print("TXID: " + str(TXID))
-        return TXID
-
+    try:
+        url = "https://blockchain.info/unspent?active=" + str(address)
+        r = requests.get(url)
+        if r.status_code == 200:
+            unspentTX = r.text
+            unspentTX = json.loads(unspentTX)
+            unspentTX = list(unspentTX.values())
+            unspentTX = unspentTX[1][0]
+            TXID = unspentTX["tx_hash"]
+            print("TXID: " + str(TXID))
+            return TXID
+    except:
+        print("Error getting unspent transactions")
 def bitcoinURI(address):
     # create a bitcoin uri from the address
     uri = "bitcoin:" + str(address)
     print("Bitcoin URI: " + uri)
     return uri
+
+def accessWallet(filename):
+    # access a wallet from a file
+    with open(filename, "r") as f:
+        lines = f.readlines()
+        privateKey = lines[0]
+        privateKey = privateKey.replace("Private key: ", "")
+        privateKey = privateKey.replace("\n", "")
+        privateKey = CBitcoinSecret.from_secret_bytes(bytes.fromhex(privateKey))
+        publicKey = privateKey.pub
+        address = createAddress(publicKey)
+        print("Private key: " + str(privateKey))
+        print("Public key: " + str(publicKey))
+        print("Address: " + str(address))
+        return privateKey, publicKey, address
 
 def createQRCode(text):
     # create a qr code from the address
@@ -90,20 +129,26 @@ def createQRCode(text):
 def main():
     global exit
     while not exit:
-        choice = input("1. Create wallet\n2. Generate QR Code\n3. Check balance\n4. Exit\n")
+        if networkSelect == "testnet":
+            print("Network: Testnet")
+        elif networkSelect == "mainnet":
+            print("Network: Mainnet")    
+        choice = input("1. Create wallet\n2. Access Wallet \n3. Generate QR Code\n4. Check balance\n5. Exit\n")
         if choice == "1":
             brainWallet = input("Enter a phrase to use as brain wallet:")
             privateKey, publicKey, address = createWallet(brainWallet)
         elif choice == "2":
+            privateKey, publicKey, address = accessWallet(input("Enter the filename of the wallet:"))
+        elif choice == "3":
             uri = bitcoinURI(address)
             createQRCode(uri)
-        elif choice == "3":
+        elif choice == "4":
             getBalance(address)
             checkUnspentTX(address)
-        elif choice == "4":
+        elif choice == "5":
             exit = True
             break    
-        elif choice == "5":
+        elif choice == "6":
             privateKey, publicKey, address = createWallet()
             uri = bitcoinURI(address)
             createQRCode(uri)

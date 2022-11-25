@@ -6,9 +6,7 @@ from bitcoin.wallet import CBitcoinSecret, P2PKHBitcoinAddress, P2SHBitcoinAddre
 
 try:
     networkSelect = input("Mainnet or Testnet? ").lower()
-    if networkSelect == "":
-        raise ValueError
-    elif networkSelect == "mainnet" or networkSelect == "main":
+    if networkSelect == "mainnet" or networkSelect == "main":
         bitcoin.SelectParams(networkSelect)
     elif networkSelect == "testnet" or networkSelect == "test":
         bitcoin.SelectParams(networkSelect)

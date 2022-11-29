@@ -11,3 +11,15 @@ This is a basic Python Bitcoin Wallet made to be used on the command line using 
 
 ## TODO:
 * Be able to Spend any Bitcoin Balance
+
+## Installation:
+
+If you want to try it out, please do the following commands on Linux command line. It is possible to use on Mac OS and Windows but I will not provide the specific instructions here.
+
+```
+sudo apt-get install libssl-dev
+pip install python-bitcoinlib
+pip install qrcode
+pip install image
+pip install requests
+```

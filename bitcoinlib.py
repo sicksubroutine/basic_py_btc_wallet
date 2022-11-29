@@ -1,27 +1,30 @@
-import hashlib, random, qrcode, image, requests, json
+import hashlib, random, qrcode, image, requests, json, traceback
 import bitcoin 
 from bitcoin.core import Hash160
 from bitcoin.core.script import CScript, OP_DUP, OP_HASH160, OP_EQUALVERIFY, OP_CHECKSIG, SignatureHash, SIGHASH_ALL
 from bitcoin.wallet import CBitcoinSecret, P2PKHBitcoinAddress, P2SHBitcoinAddress
 
+exit = False
+debug = True
+
 try:
     networkSelect = input("Mainnet or Testnet? ").lower()
-    if networkSelect == "mainnet" or networkSelect == "main":
-        bitcoin.SelectParams(networkSelect)
-    elif networkSelect == "testnet" or networkSelect == "test":
+    if networkSelect == "mainnet" or networkSelect == "testnet":
         bitcoin.SelectParams(networkSelect)
     else:
         raise ValueError
-except:
+except: 
+    if debug == True:
+        print(f"\33[31m{traceback.format_exc()}\33[0m")
     print("\33[31mError selecting network, selecting Testnet by default.\33[0m")
     networkSelect = "testnet"
     bitcoin.SelectParams(networkSelect)
-exit = False
+
 
 def createPrivateKey(text):
     # encode text to bytes
     text = text.encode('utf-8')
-    hash = h = hashlib.sha256(text).digest()
+    hash = hashlib.sha256(text).digest()
     return hash
 
 def createPublicKey(privateKey):
@@ -34,7 +37,7 @@ def createAddress(publicKey):
     # create a bitcoin address from the public key
     address = P2PKHBitcoinAddress.from_pubkey(publicKey)
     return address
-
+## TODO: Get P2SH addresses working
 def createP2SHaddress(publicKey):
     # create a P2SH address from the public key
     redeemScript = CScript([OP_DUP, OP_HASH160, Hash160(publicKey), OP_EQUALVERIFY, OP_CHECKSIG])
@@ -49,7 +52,7 @@ def createWallet(text):
     print("Public key: " + str(publicKey))
     print("Address: " + str(address))
     rand = random.randint(0, 100)
-    # save the private key to a file
+    # TODO: Encrypt the wallet
     #with open("keys" + str(rand) + ".txt", "w") as f:
     #    f.write(str(f"Private key: {privateKey}\n"))
     #    f.write(str(f"Address: {address}"))
@@ -81,6 +84,7 @@ def checkUnspentTX(address):
             unspentTX = json.loads(unspentTX)
             unspentTX = list(unspentTX.values())
             unspentTX = unspentTX[1][0]
+            ## TODO: Do something with the TXID and use it to construct TXs
             TXID = unspentTX["tx_hash"]
             print("TXID: " + str(TXID))
             return TXID
@@ -124,13 +128,12 @@ def createQRCode(text):
     except:
         print("Error creating QR code")   
 
+networkSelect = networkSelect.capitalize()
+
 def main():
     global exit
     while not exit:
-        if networkSelect == "testnet":
-            print("Network: Testnet")
-        elif networkSelect == "mainnet":
-            print("Network: Mainnet")    
+        print(f"Network: {networkSelect}")
         choice = input("1. Create wallet\n2. Access Wallet \n3. Generate QR Code\n4. Check balance\n5. Exit\n")
         if choice == "1":
             brainWallet = input("Enter a phrase to use as brain wallet:")

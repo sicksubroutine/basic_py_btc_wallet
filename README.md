@@ -7,7 +7,7 @@ This is a basic Python Bitcoin Wallet made to be used on the command line using 
 * Generate a private key, public key, and address.
 * Generate a QR code with the approripate Bitcoin URI baked in and save to file.
 * Check Sats Balance
-* Accquire TXID of any unspent Transactions
+* Acquire TXID of any unspent Transactions
 
 ## TODO:
 * Be able to Spend any Bitcoin Balance
